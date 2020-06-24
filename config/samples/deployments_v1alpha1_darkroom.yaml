@@ -1,0 +1,7 @@
+apiVersion: deployments.example.com/v1alpha1
+kind: Darkroom
+metadata:
+  name: darkroom-sample
+spec:
+  # Add fields here
+  foo: bar
