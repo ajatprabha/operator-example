@@ -3,5 +3,9 @@ kind: Darkroom
 metadata:
   name: darkroom-sample
 spec:
-  # Add fields here
-  foo: bar
+  source:
+    baseUrl: https://ajatprabha.in/assets
+    type: WebFolder
+  subDomains:
+    - ajatprabha
+  version: 0.1.0

@@ -23,22 +23,60 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+// +kubebuilder:validation:Enum=WebFolder;S3
+type Type string
+
+const (
+	WebFolder Type = "WebFolder"
+	S3        Type = "S3"
+)
+
+type WebFolderMeta struct {
+	BaseURL string `json:"baseUrl,omitempty"`
+}
+
+type S3Meta struct {
+	AccessKey  string `json:"accessKey,omitempty"`
+	SecretKey  string `json:"secretKey,omitempty"`
+	Region     string `json:"region,omitempty"`
+	PathPrefix string `json:"pathPrefix,omitempty"`
+}
+
+type Source struct {
+	// Specifies storage backend to use with darkroom.
+	// Valid values are:
+	// - "WebFolder" (default): simple storage backend to serve images from a hosted image source;
+	// - "S3": storage backend to serve images from an S3 bucket;
+	Type Type `json:"type"`
+
+	// +optional
+	WebFolderMeta `json:",inline"`
+
+	// +optional
+	S3Meta `json:",inline"`
+}
+
 // DarkroomSpec defines the desired state of Darkroom
 type DarkroomSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// +optional
+	Version string `json:"version"`
 
-	// Foo is an example field of Darkroom. Edit Darkroom_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Source Source `json:"source"`
+	// +kubebuilder:validation:MinItems=1
+	SubDomains []string `json:"subDomains"`
 }
 
 // DarkroomStatus defines the observed state of Darkroom
 type DarkroomStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// +optional
+	Domains []string `json:"domains,omitempty"`
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:JSONPath=".spec.version",name=VERSION,type=string
+// +kubebuilder:printcolumn:JSONPath=".spec.source.type",name=TYPE,type=string
+// +kubebuilder:resource:shortName=dr
 
 // Darkroom is the Schema for the darkrooms API
 type Darkroom struct {

@@ -1,0 +1,102 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: darkrooms.deployments.example.com
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.version
+    name: VERSION
+    type: string
+  - JSONPath: .spec.source.type
+    name: TYPE
+    type: string
+  group: deployments.example.com
+  names:
+    kind: Darkroom
+    listKind: DarkroomList
+    plural: darkrooms
+    shortNames:
+    - dr
+    singular: darkroom
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: Darkroom is the Schema for the darkrooms API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: DarkroomSpec defines the desired state of Darkroom
+          properties:
+            source:
+              properties:
+                accessKey:
+                  type: string
+                baseUrl:
+                  type: string
+                pathPrefix:
+                  type: string
+                region:
+                  type: string
+                secretKey:
+                  type: string
+                type:
+                  description: 'Specifies storage backend to use with darkroom. Valid
+                    values are: - "WebFolder" (default): simple storage backend to
+                    serve images from a hosted image source; - "S3": storage backend
+                    to serve images from an S3 bucket;'
+                  enum:
+                  - WebFolder
+                  - S3
+                  type: string
+              required:
+              - type
+              type: object
+            subDomains:
+              items:
+                type: string
+              minItems: 1
+              type: array
+            version:
+              type: string
+          required:
+          - source
+          - subDomains
+          type: object
+        status:
+          description: DarkroomStatus defines the observed state of Darkroom
+          properties:
+            domains:
+              items:
+                type: string
+              type: array
+          type: object
+      type: object
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
