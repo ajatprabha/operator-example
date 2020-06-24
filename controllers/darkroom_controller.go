@@ -19,6 +19,10 @@ package controllers
 import (
 	"context"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/networking/v1beta1"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,10 +42,65 @@ type DarkroomReconciler struct {
 // +kubebuilder:rbac:groups=deployments.example.com,resources=darkrooms/status,verbs=get;update;patch
 
 func (r *DarkroomReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("darkroom", req.NamespacedName)
+	ctx := context.Background()
+	r.Log.WithValues("darkroom", req.NamespacedName)
 
-	// your logic here
+	var darkroom deploymentsv1alpha1.Darkroom
+	if err := r.Get(ctx, req.NamespacedName, &darkroom); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	// check version, set to latest if missing
+	if darkroom.Spec.Version == "" {
+		darkroom.Spec.Version = "latest"
+		if err := r.Update(ctx, &darkroom, &client.UpdateOptions{}); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	cfg, err := r.desiredConfigMap(darkroom)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	deployment, err := r.desiredDeployment(darkroom, cfg)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	svc, err := r.desiredService(darkroom)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	ingr, err := r.desiredIngress(darkroom, svc)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	applyOpts := []client.PatchOption{client.ForceOwnership, client.FieldOwner("darkroom-controller")}
+
+	err = r.Patch(ctx, &cfg, client.Apply, applyOpts...)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.Patch(ctx, &deployment, client.Apply, applyOpts...)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.Patch(ctx, &svc, client.Apply, applyOpts...)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.Patch(ctx, &ingr, client.Apply, applyOpts...)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	darkroom.Status.Domains = domainsForService(ingr)
+	err = r.Status().Update(ctx, &darkroom)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -49,5 +108,9 @@ func (r *DarkroomReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *DarkroomReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&deploymentsv1alpha1.Darkroom{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Service{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&v1beta1.Ingress{}).
 		Complete(r)
 }
