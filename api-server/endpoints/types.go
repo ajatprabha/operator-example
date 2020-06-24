@@ -12,7 +12,7 @@ type Endpoint interface {
 	SetupWithWS(ws *restful.WebService)
 }
 
-type Source struct {
+type 	Source struct {
 	Type       string `json:"type"`
 	BaseURL    string `json:"baseUrl,omitempty"`
 	AccessKey  string `json:"accessKey,omitempty"`
